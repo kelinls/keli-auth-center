@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth2.0 主页</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }
+        .btn { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+<h1>OAuth2.0 演示主页</h1>
+<button id="loginBtn" class="btn">发起授权登录</button>
+
+<script>
+    // 核心配置（需修改为你的实际地址）
+    const OAUTH_CONFIG = {
+        clientId: "keli-client", // 替换为你的客户端ID
+        redirectUri: "http://localhost:8080/api/login/callback", // 替换为回调地址
+        responseType: "code", // 授权码模式固定值
+        scope: "read write", // 申请的权限范围，按需修改
+        state: "random-" + Math.random().toString(36).substr(2, 10), // 防CSRF，随机字符串
+        authorizationEndpoint: "http://localhost:9000/oauth2/authorize" // 授权端点，替换为你的后端地址
+    };
+
+    // 点击登录按钮，发起授权请求
+    document.getElementById("loginBtn").addEventListener("click", function() {
+        // 拼接授权请求URL
+        const authUrl = `${OAUTH_CONFIG.authorizationEndpoint}?` +
+            `client_id=${encodeURIComponent(OAUTH_CONFIG.clientId)}&` +
+            `redirect_uri=${encodeURIComponent(OAUTH_CONFIG.redirectUri)}&` +
+            `response_type=${encodeURIComponent(OAUTH_CONFIG.responseType)}&` +
+            `scope=${encodeURIComponent(OAUTH_CONFIG.scope)}&` +
+            `state=${encodeURIComponent(OAUTH_CONFIG.state)}`;
+
+        // 跳转至授权端点（后端会校验session，未登录则重定向到登录页）
+        window.location.href = authUrl;
+    });
+</script>
+</body>
+</html>

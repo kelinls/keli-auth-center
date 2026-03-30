@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>OAuth2.0 登录页</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+<h2>用户登录</h2>
+<form id="loginForm" action="{YOUR_DOMAIN}/login/process" method="POST"> <!-- 替换为登录处理接口 -->
+    <div class="form-group">
+        <label for="username">用户名：</label>
+        <input type="text" id="username" name="username" required>
+    </div>
+    <div class="form-group">
+        <label for="password">密码：</label>
+        <input type="password" id="password" name="password" required>
+    </div>
+    <!-- 隐藏字段：携带授权请求的原始参数，登录成功后继续授权流程 -->
+    <input type="hidden" id="authorizationRequest" name="authorizationRequest">
+    <button type="submit" class="btn">登录</button>
+</form>
+
+<script>
+    // 从URL中获取授权请求的原始参数（后端重定向时携带）
+    window.onload = function() {
+        const searchParams = new URLSearchParams(window.location.search);
+        const authRequest = searchParams.get("authorizationRequest");
+        if (authRequest) {
+            document.getElementById("authorizationRequest").value = authRequest;
+        }
+    };
+</script>
+</body>
+</html>

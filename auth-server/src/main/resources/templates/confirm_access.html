@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>授权确认</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+        .scope { color: #666; margin: 20px 0; }
+        .btn { padding: 10px 20px; margin: 0 10px; border: none; border-radius: 4px; cursor: pointer; }
+        .allow { background: #28a745; color: white; }
+        .deny { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+<h2>授权请求</h2>
+<p>应用 <strong>{client_name}</strong> 请求以下权限：</p>
+<div class="scope">read（读取数据）、write（修改数据）</div>
+<form action="{YOUR_DOMAIN}/oauth/authorize/confirm" method="POST"> <!-- 替换为授权确认接口 -->
+    <input type="hidden" name="authorizationRequest" value="{auth_request}">
+    <button type="submit" name="action" value="allow" class="btn allow">允许</button>
+    <button type="submit" name="action" value="deny" class="btn deny">拒绝</button>
+</form>
+</body>
+</html>
