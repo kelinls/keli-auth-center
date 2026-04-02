@@ -1,7 +1,7 @@
 package com.keli.tokenserver.controller;
 
-import com.keli.tokenserver.dto.TokenRequest;
-import com.keli.tokenserver.dto.TokenResponse;
+import com.keli.common.dto.TokenRequest;
+import com.keli.common.dto.TokenResponse;
 import com.keli.tokenserver.service.TokenBaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;

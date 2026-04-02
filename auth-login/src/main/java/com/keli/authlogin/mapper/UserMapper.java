@@ -2,6 +2,7 @@ package com.keli.authlogin.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.keli.authlogin.entity.User;
+import org.apache.ibatis.annotations.Mapper;
 
 
 /**
@@ -11,8 +12,11 @@ import com.keli.authlogin.entity.User;
 * @Entity com.keli.authserver.domain.User
 */
 
+@Mapper
 public interface UserMapper extends BaseMapper<User> {
-
+    User selectUserWithRolesByUsername(String username);
+    User selectUserWithRolesByPhone(String phoneNumber);
+    User selectUserWithRolesByEmail(String email);
 }
 
 

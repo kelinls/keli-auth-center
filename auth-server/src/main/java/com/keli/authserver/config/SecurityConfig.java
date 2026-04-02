@@ -1,6 +1,7 @@
 package com.keli.authserver.config;
 
 
+import com.keli.authserver.feign.SessionClient;
 import com.keli.authserver.filter.SsoSessionAuthenticationFilter;
 import com.keli.authserver.service.impl.CustomRefreshTokenAuthenticationProvider;
 import com.keli.authserver.service.impl.ExternalLoginAuthenticationEntryPoint;
@@ -19,7 +20,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configurers.OAuth2AuthorizationServerConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
 
@@ -34,17 +35,12 @@ public class SecurityConfig {
      */
     @Value("${keli.token-service.jwks-uri:http://localhost:8082/oauth2/jwks}")
     private String tokenServiceJwksUri;
-
     @Autowired
     private AuthenticationManager authenticationManager;
-
-
+    @Autowired
+    private SessionClient sessionClient;
     @Autowired
     private CustomRefreshTokenAuthenticationProvider customRefreshTokenAuthenticationProvider;
-//    @Autowired
-//    private CachedOAuth2AuthorizationService cachedOAuth2AuthorizationService;
-//    @Autowired
-//    private OAuth2TokenGenerator<?> tokenGenerator;
 @Bean
 public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver(HttpSecurity http) {
     // 注意：这里传入的 http 是尚未构建的实例，但 lambda 会在请求时执行，此时 http 已构建好
@@ -56,13 +52,7 @@ public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerRe
             throws Exception {
         OAuth2AuthorizationServerConfigurer authorizationServerConfigurer =
                 new OAuth2AuthorizationServerConfigurer();
-
-
-        SsoSessionAuthenticationFilter ssoFilter = new SsoSessionAuthenticationFilter(authenticationManager);
-//        //创建token刷新的provider
-//        CustomRefreshTokenAuthenticationProvider customRefreshTokenAuthenticationProvider = new CustomRefreshTokenAuthenticationProvider(authorizationService,tokenGenerator,registeredClientRepository);
-
-
+        SsoSessionAuthenticationFilter ssoFilter = new SsoSessionAuthenticationFilter(authenticationManager,sessionClient);
         http
                 .securityMatcher(authorizationServerConfigurer.getEndpointsMatcher())
                 .with(authorizationServerConfigurer, (authorizationServer) -> {
@@ -75,7 +65,8 @@ public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerRe
                                 .anyRequest().authenticated()
                 )
                 //框架通过authenticationManager中的provider来进行认证，但是，authenticationManager有不止一个，我们要自定义认证流程中使用到manager的话，一定要注意我们使用的是哪个manager，对于自定义内容还是推荐用自定义manager，防止其他manager里没有我们自定义的provider
-                .addFilterBefore(ssoFilter, UsernamePasswordAuthenticationFilter.class)
+                //注意ssoFilter在过滤器链中的顺序，这个很重要，顺序不对会出稀奇古怪的bug，之前第一次登录必定跳/error就是因为这个原因
+                .addFilterAfter(ssoFilter, SecurityContextHolderFilter.class)
                 .authenticationProvider(customRefreshTokenAuthenticationProvider)
                 .csrf(AbstractHttpConfigurer::disable)
                 // Redirect to the login page when not authenticated from the
@@ -86,13 +77,6 @@ public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerRe
                                 new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
                         )
                 );
-
-
-
-          //ssofilter放在所有安全过滤器前面，也就是这个了，不能放在authorizationEndpointFilter前面，在整个配置完成前，无法确认这个过滤器的顺序
-
-
-
         return http.build();
     }
 
@@ -114,30 +98,5 @@ public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerRe
                 .formLogin(AbstractHttpConfigurer::disable);
         return http.build();
     }
-    //注入测试用用户和客户端
-//    @Bean
-//    public UserDetailsService userDetailsService() {
-//        UserDetails userDetails = User.withDefaultPasswordEncoder()
-//                .username("user")
-//                .password("password")
-//                .roles("USER")
-//                .build();
-//
-//        return new InMemoryUserDetailsManager(userDetails);
-//    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

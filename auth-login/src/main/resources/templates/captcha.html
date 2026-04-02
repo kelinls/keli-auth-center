@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>阿里云验证码2.0 - 登录</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; margin:0; }
+        .login-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 400px; padding: 24px; }
+        .login-card h2 { margin: 0 0 24px; font-size: 20px; color: #1d2129; text-align: center; }
+        .form-item { margin-bottom: 20px; }
+        .form-item label { display: block; margin-bottom: 8px; font-size: 14px; color: #4e5969; }
+        .form-item input { width: 100%; height: 44px; padding: 0 16px; border: 1px solid #c9cdd4; border-radius: 8px; font-size: 16px; color: #1d2129; }
+        .form-item input:focus { outline: none; border-color: #4080ff; box-shadow: 0 0 0 2px rgba(64,128,255,0.2); }
+        #captcha { margin-bottom: 20px; width:100%; height:48px; }
+        button { width: 100%; height: 44px; background: #4080ff; border: none; border-radius: 8px; color: #fff; font-size: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #3377ee; }
+        button:disabled { background: #8cb4ff; cursor: not-allowed; }
+        .msg { margin-top: 16px; text-align: center; font-size: 14px; }
+        .msg.error { color: #f53f3f; }
+        .msg.success { color: #00b42a; }
+    </style>
+
+    <script>
+        window.AliyunCaptchaConfig = {
+            region: "cn",
+            prefix: "qsjvt1",
+        };
+    </script>
+
+    <script type="text/javascript" src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"></script>
+</head>
+
+<body>
+<div class="login-card">
+    <h2>账号登录</h2>
+    <div class="form-item">
+        <label for="account">手机号/邮箱</label>
+        <input id="account" type="text" placeholder="请输入手机号或邮箱">
+    </div>
+
+    <!-- 阿里云验证码容器 -->
+    <div id="captcha"></div>
+
+    <button id="submit-btn">登录</button>
+    <div id="msg" class="msg"></div>
+</div>
+
+<script type="text/javascript">
+    var captcha;
+    let submitBtn = document.getElementById('submit-btn');
+    let accountInput = document.getElementById('account');
+    let msgBox = document.getElementById('msg');
+
+    // 提示信息
+    function showMsg(text, type) {
+        msgBox.className = "msg " + type;
+        msgBox.innerText = text;
+        setTimeout(() => msgBox.innerText = "", 3000);
+    }
+
+    // ====================== 验证码初始化（等页面加载完） ======================
+    window.onload = function () {
+        window.initAliyunCaptcha({
+            SceneId: 'd4prtrmb',
+            mode: 'popup',
+            element: '#captcha',        // 已修复
+            button: '#submit-btn',      // 已修复
+            captchaVerifyCallback: captchaVerifyCallback,
+            onBizResultCallback: onBizResultCallback,
+            getInstance: getInstance,
+            slideStyle: { width: 360, height: 40 },
+            language: 'cn',
+        });
+    };
+
+    function getInstance(instance) {
+        captcha = instance;
+    }
+
+    // ====================== 核心：验证码校验 + 后端请求 ======================
+    async function captchaVerifyCallback(captchaVerifyParam) {
+        const account = accountInput.value.trim();
+
+        if (!account) {
+            showMsg("请输入手机号或邮箱", "error");
+            return { captchaResult: false, bizResult: false };
+        }
+
+        try {
+            // 真实请求你的后端
+            const response = await fetch('http://localhost:8080/api/auth/alicaptcha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sceneId : "d4prtrmb",
+                    captchaVerifyParam: captchaVerifyParam  // 阿里云官方校验参数
+                })
+            });
+
+            const data = await response.json();
+
+            // 标准返回格式
+            return {
+                captchaResult: data.code === 200,  // 验证码是否通过
+                bizResult: data.data.bizResult       // 业务是否通过
+            };
+        } catch (e) {
+            console.error(e);
+            showMsg("网络异常 / 请求失败", "error");
+            return { captchaResult: false, bizResult: false };
+        }
+    }
+
+    // ====================== 最终业务结果回调 ======================
+    function onBizResultCallback(bizResult) {
+        if (bizResult) {
+            showMsg("登录成功", "success");
+            // 成功后跳转
+            setTimeout(() => {
+                window.location.href = "http://localhost:8080/";
+            }, 1000);
+        } else {
+            showMsg("验证失败，请重试", "error");
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -3,6 +3,7 @@ package com.keli.authserver.dto;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.keli.common.dto.SsoTokenCredentials;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -13,23 +14,20 @@ import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SsoSessionAuthenticationToken extends AbstractAuthenticationToken implements Serializable {
-    private final String sessionId;
 
     private final Object principal;
 
     private final Object credentials;
 
     //一个构造方法用来构造未认证的对象
-    public SsoSessionAuthenticationToken(String sessionId) {
+    public SsoSessionAuthenticationToken(SsoTokenCredentials credentials) {
         super(null);
-        this.sessionId = null;
         this.principal = null;
-        this.credentials = sessionId;
+        this.credentials = credentials;
         setAuthenticated(false);
     }
-    public SsoSessionAuthenticationToken(String sessionId, Object principal, Collection<? extends GrantedAuthority> authorities) {
+    public SsoSessionAuthenticationToken( Object principal, Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
-        this.sessionId = sessionId;
         this.principal = principal;
         this.credentials = null;
         setAuthenticated(true);
@@ -41,7 +39,7 @@ public class SsoSessionAuthenticationToken extends AbstractAuthenticationToken i
      */
     @JsonCreator
     public static SsoSessionAuthenticationToken fromJackson(
-            @JsonProperty("sessionId") String sessionId,
+            @JsonProperty("sSoTokenCredentials") SsoTokenCredentials ssoTokenCredentials,
             @JsonProperty("principal") Object principal,
             @JsonProperty("authorities") Collection<? extends GrantedAuthority> authorities,
             @JsonProperty("details") Object details,
@@ -50,11 +48,10 @@ public class SsoSessionAuthenticationToken extends AbstractAuthenticationToken i
         SsoSessionAuthenticationToken token;
         if (auth) {
             token = new SsoSessionAuthenticationToken(
-                    sessionId,
                     principal,
                     authorities != null ? authorities : List.of());
         } else {
-            token = new SsoSessionAuthenticationToken(sessionId != null ? sessionId : "");
+            token = new SsoSessionAuthenticationToken(ssoTokenCredentials);
         }
         if (details != null) {
             token.setDetails(details);

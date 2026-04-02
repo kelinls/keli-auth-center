@@ -2,41 +2,193 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>OAuth2.0 登录页</title>
+    <title>用户登录 - 颗粒认证中心</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; }
-        input { width: 100%; padding: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .btn:hover { background: #0056b3; }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 16px; margin: 0; }
+        .login-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 400px; padding: 32px 24px; }
+        .login-card h2 { margin: 0 0 8px; font-size: 24px; color: #1d2129; text-align: center; }
+        .login-card p { margin: 0 0 24px; font-size: 14px; color: #86909c; text-align: center; }
+        .form-item { margin-bottom: 20px; }
+        .form-item label { display: block; margin-bottom: 8px; font-size: 14px; color: #4e5969; font-weight: 500; }
+        .form-item input { width: 100%; height: 44px; padding: 0 16px; border: 1px solid #c9cdd4; border-radius: 8px; font-size: 16px; color: #1d2129; transition: all 0.2s; }
+        .form-item input:focus { outline: none; border-color: #4080ff; box-shadow: 0 0 0 2px rgba(64,128,255,0.2); }
+        #captcha { margin-bottom: 20px; width: 100%; height: 48px; }
+        button { width: 100%; height: 44px; background: #4080ff; border: none; border-radius: 8px; color: #fff; font-size: 16px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #3377ee; }
+        button:disabled { background: #8cb4ff; cursor: not-allowed; }
+        .msg { margin-top: 16px; text-align: center; font-size: 14px; min-height: 20px; }
+        .msg.error { color: #f53f3f; }
+        .msg.success { color: #00b42a; }
+        .footer-links { margin-top: 24px; text-align: center; font-size: 13px; color: #86909c; }
+        .footer-links a { color: #4080ff; text-decoration: none; margin: 0 8px; }
+        .footer-links a:hover { text-decoration: underline; }
     </style>
-</head>
-<body>
-<h2>用户登录</h2>
-<form id="loginForm" action="{YOUR_DOMAIN}/login/process" method="POST"> <!-- 替换为登录处理接口 -->
-    <div class="form-group">
-        <label for="username">用户名：</label>
-        <input type="text" id="username" name="username" required>
-    </div>
-    <div class="form-group">
-        <label for="password">密码：</label>
-        <input type="password" id="password" name="password" required>
-    </div>
-    <!-- 隐藏字段：携带授权请求的原始参数，登录成功后继续授权流程 -->
-    <input type="hidden" id="authorizationRequest" name="authorizationRequest">
-    <button type="submit" class="btn">登录</button>
-</form>
 
-<script>
-    // 从URL中获取授权请求的原始参数（后端重定向时携带）
-    window.onload = function() {
-        const searchParams = new URLSearchParams(window.location.search);
-        const authRequest = searchParams.get("authorizationRequest");
-        if (authRequest) {
-            document.getElementById("authorizationRequest").value = authRequest;
+    <script>
+        // 阿里云验证码配置，由用户提供
+        window.AliyunCaptchaConfig = {
+            region: "cn",
+            prefix: "qsjvt1",
+        };
+    </script>
+    <script type="text/javascript" src="https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js"></script>
+</head>
+
+<body>
+<div class="login-card">
+    <h2>账号登录</h2>
+    <p>请输入您的账号和密码</p>
+    
+    <div class="form-item">
+        <label for="account">账号</label>
+        <input id="account" type="text" placeholder="手机号/邮箱/用户名" required>
+    </div>
+
+    <div class="form-item">
+        <label for="password">密码</label>
+        <input id="password" type="password" placeholder="请输入密码" required>
+    </div>
+
+    <!-- 阿里云验证码容器 -->
+    <div id="captcha"></div>
+
+    <button id="submit-btn">立即登录</button>
+    <div id="msg" class="msg"></div>
+
+    <div class="footer-links">
+        <a href="#">注册账号</a>
+        <span>|</span>
+        <a href="#">忘记密码</a>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var captcha;
+    let submitBtn = document.getElementById('submit-btn');
+    let accountInput = document.getElementById('account');
+    let passwordInput = document.getElementById('password');
+    let msgBox = document.getElementById('msg');
+
+    // 获取授权回跳地址（authorizationRequest）
+    const searchParams = new URLSearchParams(window.location.search);
+    const authRequest = searchParams.get("authorizationRequest");
+
+    // 提示信息
+    function showMsg(text, type) {
+        msgBox.className = "msg " + type;
+        msgBox.innerText = text;
+        // 如果是成功信息，保持显示；否则 3 秒后清除
+        if (type !== 'success') {
+            setTimeout(() => msgBox.innerText = "", 3000);
         }
+    }
+
+    // ====================== 验证码初始化 ======================
+    window.onload = function () {
+        window.initAliyunCaptcha({
+            SceneId: 'd4prtrmb',
+            mode: 'popup',
+            element: '#captcha',
+            button: '#submit-btn',
+            captchaVerifyCallback: captchaVerifyCallback,
+            onBizResultCallback: onBizResultCallback,
+            getInstance: getInstance,
+            slideStyle: { width: 360, height: 40 },
+            language: 'cn',
+        });
     };
+
+    function getInstance(instance) {
+        captcha = instance;
+    }
+
+    // ====================== 验证码校验 ======================
+    async function captchaVerifyCallback(captchaVerifyParam) {
+        const account = accountInput.value.trim();
+        const password = passwordInput.value;
+
+        if (!account || !password) {
+            showMsg("请输入账号和密码", "error");
+            return { captchaResult: false, bizResult: false };
+        }
+
+        try {
+            // 1. 调用阿里云验证码校验接口
+            const response = await fetch('/api/auth/alicaptcha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sceneId : "d4prtrmb",
+                    captchaVerifyParam: captchaVerifyParam
+                })
+            });
+
+            const data = await response.json();
+
+            // 如果验证码通过，返回给 SDK
+            return {
+                captchaResult: data.code === 200 && data.data.bizResult, 
+                bizResult: data.code === 200 && data.data.bizResult
+            };
+        } catch (e) {
+            console.error(e);
+            showMsg("网络异常 / 验证码请求失败", "error");
+            return { captchaResult: false, bizResult: false };
+        }
+    }
+
+    // ====================== 最终业务：执行登录 ======================
+    async function onBizResultCallback(bizResult) {
+        if (!bizResult) {
+            showMsg("验证失败，请重试", "error");
+            return;
+        }
+
+        // 验证码通过后，开始正式登录
+        submitBtn.disabled = true;
+        submitBtn.innerText = "登录中...";
+
+        try {
+            const loginResponse = await fetch('/api/auth/login/password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    account: accountInput.value.trim(),
+                    password: passwordInput.value
+                })
+            });
+
+            const loginData = await loginResponse.json();
+
+            if (loginData.code === 200) {
+                showMsg("登录成功，正在跳转...", "success");
+                
+                // 登录成功后，跳转回授权端点
+                setTimeout(() => {
+                    if (authRequest) {
+                        window.location.href = decodeURIComponent(authRequest);
+                    } else {
+                        // 如果没有回跳地址，默认回主页
+                        window.location.href = "/api/index";
+                    }
+                }, 2000);
+            } else {
+                showMsg(loginData.msg || "登录失败，请检查账号密码", "error");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "立即登录";
+                // 验证码可能需要重置（取决于业务场景）
+                if (captcha) captcha.reset();
+            }
+        } catch (e) {
+            console.error(e);
+            showMsg("网络异常 / 登录请求失败", "error");
+            submitBtn.disabled = false;
+            submitBtn.innerText = "立即登录";
+        }
+    }
 </script>
+
 </body>
 </html>

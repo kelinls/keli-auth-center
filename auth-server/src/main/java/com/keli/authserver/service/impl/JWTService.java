@@ -1,9 +1,9 @@
 package com.keli.authserver.service.impl;
 
-import com.keli.authserver.dto.TokenRequest;
-import com.keli.authserver.dto.TokenResponse;
 import com.keli.authserver.feign.TokenClient;
 import com.keli.authserver.service.TokenService;
+import com.keli.common.dto.TokenRequest;
+import com.keli.common.dto.TokenResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;

@@ -18,8 +18,23 @@
         <java.version>21</java.version>
     </properties>
     <dependencies>
-
+        <dependency>
+            <groupId>com.keli</groupId>
+            <artifactId>common</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>captcha20230305</artifactId>
+            <version>1.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>credentials-java</artifactId>
+            <version>1.0.3</version>
+        </dependency>
     </dependencies>
+
 
 
 

@@ -32,12 +32,13 @@ public RegisteredClientRepository registeredClientRepository() {
 //        String encode = passwordEncoder().encode(rawPwd);
     RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
             .clientId("keli-client")
-            .clientSecret("{noop}kelinls")
+            .clientSecret("{noop}kelinls2")
             .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
             .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
             .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
             .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-            .redirectUri("http://localhost:8080/api/login/callback")
+            //一定要确保这里的重定向uri和请求的时携带的一致，不然会直接报错跳转/error
+            .redirectUri("http://localhost:8080/api/auth/callback")
             .postLogoutRedirectUri("http://localhost:8080/")
             .scope("read")
             .scope("write")
@@ -46,12 +47,27 @@ public RegisteredClientRepository registeredClientRepository() {
                     .accessTokenTimeToLive(Duration.ofMinutes(5))
                     .refreshTokenTimeToLive(Duration.ofDays(7)).build())
             .build();
-    log.info("uuid:{}",oidcClient.getId());
-    log.info("clientId:{}",oidcClient.getClientId());
-    log.info("clientSecret:{}",oidcClient.getClientSecret());
+    RegisteredClient client = RegisteredClient.withId(UUID.randomUUID().toString())
+            .clientId("kelinls-client")
+            .clientSecret("{noop}kelinls")
+            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+            .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_POST)
+            .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+            .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
+            //一定要确保这里的重定向uri和请求的时携带的一致，不然会直接报错跳转/error
+            .redirectUri("http://localhost:8080/api/auth/callback")
+            .postLogoutRedirectUri("http://localhost:8080/")
+            .scope("read")
+            .scope("write")
+            .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
+            .tokenSettings(TokenSettings.builder()
+                    .accessTokenTimeToLive(Duration.ofMinutes(5))
+                    .refreshTokenTimeToLive(Duration.ofDays(7)).build())
+            .build();
 
-    return new InMemoryRegisteredClientRepository(oidcClient);
+    return new InMemoryRegisteredClientRepository(oidcClient, client);
 }
+
 
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {

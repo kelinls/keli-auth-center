@@ -61,3 +61,6 @@ springdoc:
     - com.example.controller
   paths-to-match:                 # 指定需要匹配的路径（可选）
     - /api/**
+security:
+  session:
+    expireTtl: 3600

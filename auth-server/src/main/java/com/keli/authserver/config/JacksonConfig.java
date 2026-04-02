@@ -2,10 +2,10 @@ package com.keli.authserver.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.keli.authserver.dto.SsoSessionAuthenticationToken;
-import com.keli.authserver.dto.UserInfo;
 import com.keli.authserver.dto.mixin.SsoSessionAuthenticationTokenMixin;
-import com.keli.authserver.dto.mixin.UserInfoMixin;
+import com.keli.authserver.dto.mixin.SsoSessionPrincipalMixin;
 import com.keli.authserver.service.impl.CachedOAuth2AuthorizationService;
+import com.keli.common.dto.SsoSessionPrincipal;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,7 +46,7 @@ public class JacksonConfig {
         objectMapper.registerModule(new OAuth2AuthorizationServerJackson2Module());
         objectMapper.addMixIn(SsoSessionAuthenticationToken.class, SsoSessionAuthenticationTokenMixin.class);
         // principal 为 UserInfo 时必须注册 Mixin，否则 AllowlistTypeIdResolver 拒绝反序列化（仅作用于本 ObjectMapper，不影响 Feign）
-        objectMapper.addMixIn(UserInfo.class, UserInfoMixin.class);
+        objectMapper.addMixIn(SsoSessionPrincipal.class, SsoSessionPrincipalMixin.class);
         return objectMapper;
     }
 

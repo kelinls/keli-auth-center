@@ -15,6 +15,14 @@ public class ExternalLoginAuthenticationEntryPoint implements AuthenticationEntr
     }
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-        response.sendRedirect(loginUrl);
+        // 获取原始请求的全路径（含查询参数），用于登录后跳回
+        String queryString = request.getQueryString();
+        String fullUrl = request.getRequestURL().toString() + (queryString != null ? "?" + queryString : "");
+        System.out.println(fullUrl);
+        
+        // 构造重定向到登录页的URL，并携带 authorizationRequest 参数
+        String redirectUrl = loginUrl + "?authorizationRequest=" + java.net.URLEncoder.encode(fullUrl, "UTF-8");
+        
+        response.sendRedirect(redirectUrl);
     }
 }

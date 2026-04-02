@@ -17,7 +17,7 @@
     // 核心配置（需修改为你的实际地址）
     const OAUTH_CONFIG = {
         clientId: "keli-client", // 替换为你的客户端ID
-        redirectUri: "http://localhost:8080/api/login/callback", // 替换为回调地址
+        redirectUri: "http://localhost:8080/api/auth/callback", // 替换为回调地址
         responseType: "code", // 授权码模式固定值
         scope: "read write", // 申请的权限范围，按需修改
         state: "random-" + Math.random().toString(36).substr(2, 10), // 防CSRF，随机字符串

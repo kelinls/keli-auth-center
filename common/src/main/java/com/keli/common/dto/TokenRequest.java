@@ -1,4 +1,4 @@
-package com.keli.authserver.dto;
+package com.keli.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

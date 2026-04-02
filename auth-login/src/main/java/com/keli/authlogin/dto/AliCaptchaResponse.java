@@ -1,13 +1,14 @@
-package com.keli.authserver.dto;
+package com.keli.authlogin.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserInfo {
-    private String id;
-    private String username;
+@Builder
+public class AliCaptchaResponse {
+    boolean bizResult;
 }
