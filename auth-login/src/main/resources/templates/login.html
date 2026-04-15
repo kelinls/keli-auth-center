@@ -27,7 +27,6 @@
     </style>
 
     <script>
-        // 阿里云验证码配置，由用户提供
         window.AliyunCaptchaConfig = {
             region: "cn",
             prefix: "qsjvt1",
@@ -40,7 +39,7 @@
 <div class="login-card">
     <h2>账号登录</h2>
     <p>请输入您的账号和密码</p>
-    
+
     <div class="form-item">
         <label for="account">账号</label>
         <input id="account" type="text" placeholder="手机号/邮箱/用户名" required>
@@ -51,16 +50,13 @@
         <input id="password" type="password" placeholder="请输入密码" required>
     </div>
 
-    <!-- 阿里云验证码容器 -->
     <div id="captcha"></div>
 
     <button id="submit-btn">立即登录</button>
     <div id="msg" class="msg"></div>
 
     <div class="footer-links">
-        <a href="#">注册账号</a>
-        <span>|</span>
-        <a href="#">忘记密码</a>
+        <a href="#" id="registerLink">注册账号</a>
     </div>
 </div>
 
@@ -71,21 +67,22 @@
     let passwordInput = document.getElementById('password');
     let msgBox = document.getElementById('msg');
 
-    // 获取授权回跳地址（authorizationRequest）
     const searchParams = new URLSearchParams(window.location.search);
     const authRequest = searchParams.get("authorizationRequest");
 
-    // 提示信息
+    document.getElementById('registerLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        window.location.href = '/api/register?authorizationRequest=' + encodeURIComponent(authRequest);
+    });
+
     function showMsg(text, type) {
         msgBox.className = "msg " + type;
         msgBox.innerText = text;
-        // 如果是成功信息，保持显示；否则 3 秒后清除
         if (type !== 'success') {
             setTimeout(() => msgBox.innerText = "", 3000);
         }
     }
 
-    // ====================== 验证码初始化 ======================
     window.onload = function () {
         window.initAliyunCaptcha({
             SceneId: 'd4prtrmb',
@@ -104,7 +101,6 @@
         captcha = instance;
     }
 
-    // ====================== 验证码校验 ======================
     async function captchaVerifyCallback(captchaVerifyParam) {
         const account = accountInput.value.trim();
         const password = passwordInput.value;
@@ -115,7 +111,6 @@
         }
 
         try {
-            // 1. 调用阿里云验证码校验接口
             const response = await fetch('/api/auth/alicaptcha', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -127,10 +122,14 @@
 
             const data = await response.json();
 
-            // 如果验证码通过，返回给 SDK
+            if (data.code !== 200) {
+                showMsg(data.message || "验证失败", "error");
+                return { captchaResult: false, bizResult: false };
+            }
+
             return {
-                captchaResult: data.code === 200 && data.data.bizResult, 
-                bizResult: data.code === 200 && data.data.bizResult
+                captchaResult: data.code === 200 && data.data && data.data.bizResult,
+                bizResult: data.code === 200 && data.data && data.data.bizResult
             };
         } catch (e) {
             console.error(e);
@@ -139,14 +138,11 @@
         }
     }
 
-    // ====================== 最终业务：执行登录 ======================
     async function onBizResultCallback(bizResult) {
         if (!bizResult) {
-            showMsg("验证失败，请重试", "error");
             return;
         }
 
-        // 验证码通过后，开始正式登录
         submitBtn.disabled = true;
         submitBtn.innerText = "登录中...";
 
@@ -163,26 +159,29 @@
             const loginData = await loginResponse.json();
 
             if (loginData.code === 200) {
-                showMsg("登录成功，正在跳转...", "success");
-                
-                // 登录成功后，跳转回授权端点
+                showMsg("登录成功，正在跳转授权...", "success");
                 setTimeout(() => {
                     if (authRequest) {
-                        window.location.href = decodeURIComponent(authRequest);
+                        window.location.href = authRequest;
                     } else {
-                        // 如果没有回跳地址，默认回主页
-                        window.location.href = "/api/index";
+                        window.location.href = "/oauth2/authorization/keli-test-client";
                     }
-                }, 2000);
+                }, 1000);
             } else {
-                showMsg(loginData.msg || "登录失败，请检查账号密码", "error");
+                showMsg(loginData.message || "登录失败，请检查账号密码", "error");
                 submitBtn.disabled = false;
                 submitBtn.innerText = "立即登录";
-                // 验证码可能需要重置（取决于业务场景）
-                if (captcha) captcha.reset();
+
+                if (captcha && typeof captcha.reset === 'function') {
+                    try {
+                        captcha.reset();
+                    } catch (resetErr) {
+                        console.warn("Captcha reset failed:", resetErr);
+                    }
+                }
             }
         } catch (e) {
-            console.error(e);
+            console.error("Login unexpected error:", e);
             showMsg("网络异常 / 登录请求失败", "error");
             submitBtn.disabled = false;
             submitBtn.innerText = "立即登录";

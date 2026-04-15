@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.keli.clientserver.mapper.OauthClientLogoutUriMapper">
+
+    <resultMap id="BaseResultMap" type="com.keli.clientserver.entity.OauthClientLogoutUri">
+            <id property="id" column="id" />
+            <result property="clientId" column="client_id" />
+            <result property="postLogoutUri" column="post_logout_uri" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,client_id,post_logout_uri
+    </sql>
+</mapper>

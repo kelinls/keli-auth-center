@@ -3,11 +3,14 @@ package com.keli.authserver.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.jdbc.core.JdbcOperations;
 import org.springframework.security.oauth2.core.AbstractOAuth2Token;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.server.authorization.*;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
@@ -15,10 +18,11 @@ import org.springframework.security.oauth2.server.authorization.client.Registere
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationService {
     private final String idCachePrefix = "auth:id:";
     private final String tokenCachePrefix = "auth:token:";
-    private final boolean useCaffeine = true;
+    private final boolean useCaffeine = false;
     private final RegisteredClientRepository registeredClientRepository;
 
 
@@ -48,6 +52,7 @@ public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationServ
 
     @Override
     public void save(OAuth2Authorization authorization) {
+
         String clientId = authorization.getRegisteredClientId();
         // 1. 保存到数据库（delegate 会持久化）
         delegate.save(authorization);
@@ -81,7 +86,6 @@ public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationServ
     private void cacheByToken(OAuth2Authorization authorization, AbstractOAuth2Token token,String clientId) {
         if (token != null) {
             String tokenKey = tokenCachePrefix + token.getTokenValue();
-            System.out.println(clientId);
             RegisteredClient registeredClient = registeredClientRepository.findById(clientId);
             Duration accessTokenTimeToLive = null;
             if(registeredClient != null) {
@@ -119,6 +123,15 @@ public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationServ
         if (authorization.getRefreshToken() != null) {
            invalidTokenCache(authorization.getRefreshToken().getToken().getTokenValue());
         }
+        OAuth2Authorization.Token<OAuth2AuthorizationCode> authCode = authorization.getToken(OAuth2AuthorizationCode.class);
+        if (authCode != null && authCode.getToken() != null) {
+            invalidTokenCache(authCode.getToken().getTokenValue());
+        }
+        OAuth2Authorization.Token<OidcIdToken> idToken = authorization.getToken(OidcIdToken.class);
+        if (idToken != null && idToken.getToken() != null) {
+            invalidTokenCache(idToken.getToken().getTokenValue());
+        }
+
     }
     private void invalidIdCache(String id){
         if(id != null){
@@ -148,7 +161,12 @@ public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationServ
             return auth;
         }
         // 2. 从 Redis 获取
-        auth = redisTemplate.opsForValue().get(key);
+        try {
+            auth = redisTemplate.opsForValue().get(key);
+        } catch (SerializationException ex) {
+            redisTemplate.delete(key);
+            auth = null;
+        }
         if (auth != null) {
             if(useCaffeine){
                 caffeineCache.put(key, auth);
@@ -176,18 +194,23 @@ public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationServ
             return auth;
         }
         // 2. 从 Redis 获取
-        auth = redisTemplate.opsForValue().get(key);
+        try {
+            auth = redisTemplate.opsForValue().get(key);
+        } catch (SerializationException ex) {
+            log.error(ex.getMessage(), ex);
+            auth = null;
+        }
         if (auth != null) {
             if(useCaffeine){
                 caffeineCache.put(key, auth);
+                return auth;
             }
-            return auth;
         }
         // 3. 从数据库获取
         auth = delegate.findByToken(token, tokenType);
         if (auth != null) {
             String clientId = auth.getRegisteredClientId();
-            RegisteredClient registeredClient = registeredClientRepository.findByClientId(clientId);
+            RegisteredClient registeredClient = registeredClientRepository.findById(clientId);
             Duration accessTokenTimeToLive = null;
             if (registeredClient != null) {
                  accessTokenTimeToLive = registeredClient.getTokenSettings().getAccessTokenTimeToLive();

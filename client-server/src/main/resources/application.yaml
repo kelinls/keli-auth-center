@@ -1,0 +1,112 @@
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  security:
+    oauth2:
+      client:
+        provider:
+          auth-server:
+            issuer-uri: https://localhost:9000
+        # registrationId=auth-server → 重定向 URI 为 /login/oauth2/code/auth-server（须与 AS 上该客户端的 redirect_uris 一致）
+        # 说明：此处 authorization-grant-type 只描述「本应用如何发起登录」= 浏览器授权码跳转，只能填 authorization_code。
+        # AS 上 grant_types 里的 refresh_token 表示「允许颁发/接受刷新令牌」；换 token 时若响应里带 refresh_token，
+        # Spring OAuth2 Client 会存起来并在需要时用 refresh_token 再访问 token 端点，无需在这里再写一条 grant。
+        # AS 上同时配置 client_secret_post 仅表示服务端接受 POST 传参；客户端选 client_secret_basic 即可（也可改为 post）。
+        registration:
+          auth-server:
+            provider: auth-server
+            client-name: clientServer
+            client-id: client_server
+            client-secret: kelinls
+            authorization-grant-type: authorization_code
+            client-authentication-method: client_secret_basic
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - profile
+              - client_server
+      resourceserver:
+        jwt:
+          issuer-uri: https://localhost:9000
+  data:
+    redis:
+      host: localhost         # Redis 服务器地址
+      port: 6379               # Redis 服务器端口
+      password:                # 密码（若无密码则留空）
+      database: 0              # 使用的数据库索引（默认 0）
+      timeout: 2000ms          # 连接超时时间（毫秒）
+      lettuce:
+        pool:
+          max-active: 8        # 连接池最大连接数（负值表示无限制）
+          max-idle: 8          # 连接池中的最大空闲连接
+          min-idle: 0          # 连接池中的最小空闲连接
+          max-wait: -1ms       # 连接池最大阻塞等待时间（负值表示无限制）
+  datasource:
+    url: jdbc:mysql://localhost:3306/keli_auth_center?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+server:
+  port: 8083
+  servlet:
+    session:
+      cookie:
+        name: CLIENT_SERVER_SESSION
+  ssl:
+    enabled: true
+    key-store: classpath:cert/client-server.p12      # 自己的服务端证书
+    key-store-client: classpath:cert/client-server-client.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    client-auth: want          #需要检测是否有证书，没证书但有accessToken也放行
+    trust-store: classpath:cert/truststore.p12     # 信任库（验证客户端证书）
+    trust-store-password: changeit
+    trust-store-type: PKCS12
+
+# 授权服务器 issuer + token-service JWKS（元数据中的 jwks_uri 指向此地址，本地不再暴露 NimbusJwkSetEndpointFilter）
+mybatis-plus:
+  # Mapper XML 文件位置
+  mapper-locations: classpath*:/mapper/*.xml
+  # 实体类包路径，用于别名
+  #type-aliases-package: com.example.domain
+  # 全局配置
+  global-config:
+    db-config:
+      # 主键类型（AUTO：数据库自增，INPUT：用户输入，ASSIGN_ID：雪花算法，ASSIGN_UUID：UUID）
+      id-type: auto
+      # 表名下划线转驼峰（默认 true）
+      table-underline: true
+      # 逻辑删除字段名
+      logic-delete-field: deleted
+      # 逻辑删除值（默认 1）
+      logic-delete-value: 1
+      # 逻辑未删除值（默认 0）
+      logic-not-delete-value: 0
+  # 配置项
+  configuration:
+    # 日志输出（开发阶段使用）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 开启驼峰命名转换（默认 true）
+    map-underscore-to-camel-case: true
+    # 是否开启缓存
+    cache-enabled: false
+springdoc:
+  api-docs:
+    path: /api-docs               # 自定义 JSON 文档路径，默认 /api-docs
+    enabled: true                 # 是否启用 API 文档端点，默认 true
+  swagger-ui:
+    path: /swagger-ui.html        # 自定义 UI 访问路径，默认 /swagger-ui.html
+    enabled: true                 # 是否启用 Swagger UI，默认 true
+    operationsSorter: method      # 接口排序方式：alpha（按字母），method（按请求方法）
+    tagsSorter: alpha             # 标签排序方式：alpha（按字母）
+    tryItOutEnabled: true         # 是否显示“Try it out”按钮
+    filter: true                  # 是否显示过滤框
+    displayRequestDuration: true  # 是否显示请求耗时
+  packages-to-scan:               # 指定扫描的包路径（可选，默认扫描所有 @RestController）
+    - com.example.controller
+  paths-to-match:                 # 指定需要匹配的路径（可选）
+    - /api/**
+
+keli:
+  auth-server:
+    issuer: https://localhost:9000

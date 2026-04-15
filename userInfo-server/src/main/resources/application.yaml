@@ -1,0 +1,82 @@
+spring:
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://localhost:9000
+  data:
+    redis:
+      host: localhost         # Redis 服务器地址
+      port: 6379               # Redis 服务器端口
+      password:                # 密码（若无密码则留空）
+      database: 0              # 使用的数据库索引（默认 0）
+      timeout: 2000ms          # 连接超时时间（毫秒）
+      lettuce:
+        pool:
+          max-active: 8        # 连接池最大连接数（负值表示无限制）
+          max-idle: 8          # 连接池中的最大空闲连接
+          min-idle: 0          # 连接池中的最小空闲连接
+          max-wait: -1ms       # 连接池最大阻塞等待时间（负值表示无限制）
+  datasource:
+    url: jdbc:mysql://localhost:3306/keli_auth_center?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+server:
+  port: 8084
+  ssl:
+    enabled: true
+    key-store: classpath:cert/userinfo-server.p12      # 自己的服务端证书
+    key-store-client: classpath:cert/userinfo-server-client.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    client-auth: want          #需要检测是否有证书，没证书但有accessToken也放行
+    trust-store: classpath:cert/truststore.p12     # 信任库（验证客户端证书）
+    trust-store-password: changeit
+    trust-store-type: PKCS12
+
+# 授权服务器 issuer + token-service JWKS（元数据中的 jwks_uri 指向此地址，本地不再暴露 NimbusJwkSetEndpointFilter）
+mybatis-plus:
+  # Mapper XML 文件位置
+  mapper-locations: classpath*:/mapper/*.xml
+  # 实体类包路径，用于别名
+  #type-aliases-package: com.example.domain
+  # 全局配置
+  global-config:
+    db-config:
+      # 主键类型（AUTO：数据库自增，INPUT：用户输入，ASSIGN_ID：雪花算法，ASSIGN_UUID：UUID）
+      id-type: auto
+      # 表名下划线转驼峰（默认 true）
+      table-underline: true
+      # 逻辑删除字段名
+      logic-delete-field: deleted
+      # 逻辑删除值（默认 1）
+      logic-delete-value: 1
+      # 逻辑未删除值（默认 0）
+      logic-not-delete-value: 0
+  # 配置项
+  configuration:
+    # 日志输出（开发阶段使用）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 开启驼峰命名转换（默认 true）
+    map-underscore-to-camel-case: true
+    # 是否开启缓存
+    cache-enabled: false
+springdoc:
+  api-docs:
+    path: /api-docs               # 自定义 JSON 文档路径，默认 /api-docs
+    enabled: true                 # 是否启用 API 文档端点，默认 true
+  swagger-ui:
+    path: /swagger-ui.html        # 自定义 UI 访问路径，默认 /swagger-ui.html
+    enabled: true                 # 是否启用 Swagger UI，默认 true
+    operationsSorter: method      # 接口排序方式：alpha（按字母），method（按请求方法）
+    tagsSorter: alpha             # 标签排序方式：alpha（按字母）
+    tryItOutEnabled: true         # 是否显示“Try it out”按钮
+    filter: true                  # 是否显示过滤框
+    displayRequestDuration: true  # 是否显示请求耗时
+  packages-to-scan:               # 指定扫描的包路径（可选，默认扫描所有 @RestController）
+    - com.example.controller
+  paths-to-match:                 # 指定需要匹配的路径（可选）
+    - /api/**

@@ -17,8 +17,23 @@ spring:
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
+#  cloud:
+#    nacos:
+#      discovery:
+#        service: session-server
+#        secure: true
 server:
     port: 8080
+    ssl:
+      enabled: true
+      key-store: classpath:cert/login-server.p12      # 自己的服务端证书
+      key-store-client: classpath:cert/login-server-client.p12
+      key-store-password: changeit
+      key-store-type: PKCS12
+      client-auth: none                         # 关键：要求客户端提供证书
+      trust-store: classpath:cert/truststore.p12     # 信任库（验证客户端证书）
+      trust-store-password: changeit
+      trust-store-type: PKCS12
 mybatis-plus:
   # Mapper XML 文件位置
   mapper-locations: classpath*:/mapper/*.xml
@@ -65,3 +80,7 @@ alibabacloud:
   accessKeyId: LTAI5tRmqnN8HEL6yKfY5Ybm
   accessKeySecret: HxAisz4U8hyfUQ46PuRd3T4S9jQmAa
   endpoint: captcha.cn-shanghai.aliyuncs.com
+#logging:
+#  level:
+#    feign: trace
+#    org.springframework.cloud.openfeign: trace

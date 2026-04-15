@@ -19,6 +19,16 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
 server:
     port: 8082
+    ssl:
+      enabled: true
+      key-store: classpath:cert/token-server.p12      # 自己的服务端证书
+#      key-store-client: classpath:cert/auth-server-client.p12
+      key-store-password: changeit
+      key-store-type: PKCS12
+      client-auth: need                         # 关键：要求客户端提供证书
+      trust-store: classpath:cert/truststore.p12     # 信任库（验证客户端证书）
+      trust-store-password: changeit
+      trust-store-type: PKCS12
 mybatis-plus:
   # Mapper XML 文件位置
   mapper-locations: classpath*:/mapper/*.xml

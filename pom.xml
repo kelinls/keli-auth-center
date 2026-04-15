@@ -21,6 +21,7 @@
         <module>session-server</module>
         <module>token-server</module>
         <module>userInfo-server</module>
+        <module>client-server</module>
         <module>common</module>
    </modules>
     <properties>
@@ -34,7 +35,20 @@
         <spring-cloud-alibaba.version>2023.0.3.3</spring-cloud-alibaba.version>
     </properties>
 
+
     <dependencies>
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-hc5</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-httpclient</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

@@ -16,6 +16,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.session.SessionInformation;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -24,19 +26,30 @@ import java.io.IOException;
 
 @Slf4j
 public class SsoSessionAuthenticationFilter extends OncePerRequestFilter {
+    private static final String OIDC_LOGOUT_ENDPOINT = "/connect/logout";
 
     private final AuthenticationManager authenticationManager;
     //如果配置了 SecurityContextRepository 为 HttpSessionSecurityContextRepository（默认），那么当请求结束时，如果 SecurityContext 有变化，Spring Security 会将其自动存入 Session（可能创建新的 Session）
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
     private final SessionClient sessionClient;
+    private final SessionRegistry sessionRegistry;
 
-    public SsoSessionAuthenticationFilter(AuthenticationManager authenticationManager,SessionClient sessionClient) {
+    public SsoSessionAuthenticationFilter(AuthenticationManager authenticationManager,
+                                          SessionClient sessionClient,
+                                          SessionRegistry sessionRegistry) {
         this.authenticationManager = authenticationManager;
         this.sessionClient = sessionClient;
+        this.sessionRegistry = sessionRegistry;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        if (OIDC_LOGOUT_ENDPOINT.equals(request.getRequestURI())) {
+            // 对 RP-Initiated Logout 不注入当前登录态，避免框架走 OP HttpSession sid 校验分支
+            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // 从 Cookie 中获取 sessionId
         String sessionId = extractSessionId(request);
@@ -68,6 +81,15 @@ public class SsoSessionAuthenticationFilter extends OncePerRequestFilter {
                 Authentication authResult = authenticationManager.authenticate(token);
                 if (authResult.isAuthenticated()) {
                     log.debug("SSO authentication success for user: {}", authResult.getPrincipal());
+                    if (authResult.getPrincipal() instanceof SsoSessionPrincipal principal
+                            && principal.getSessionId() != null
+                            && !principal.getSessionId().isBlank()) {
+                        // 让 OIDC logout 能通过 sid 在 SessionRegistry 中定位会话
+                        sessionRegistry.removeSessionInformation(principal.getSessionId());
+                        sessionRegistry.registerNewSession(principal.getSessionId(), principal);
+                        SessionInformation sessionInformation = sessionRegistry.getSessionInformation(principal.getSessionId());
+                        log.info(sessionInformation.getSessionId());
+                    }
                     // 创建新的 SecurityContext 并保存
                     SecurityContext context = SecurityContextHolder.createEmptyContext();
                     context.setAuthentication(authResult);

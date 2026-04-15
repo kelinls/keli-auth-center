@@ -17,7 +17,8 @@ public class JwtTokenBaseService implements TokenBaseService {
         JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
                 .subject(request.getSubject())
                 .issuedAt(Instant.now())
-                .claim("client_id", request.getClientId());
+                .claim("client_id", request.getClientId())
+                .claim("roles", request.getRoles());
         if(request.getIssuer() != null) {
             claimsBuilder.issuer(request.getIssuer());
         }
@@ -28,6 +29,7 @@ public class JwtTokenBaseService implements TokenBaseService {
             if (request.getScope() != null) {
                 claimsBuilder.claim("scope", request.getScope());
             }
+
 
         // 添加自定义声明
         if (request.getAdditionalClaims() != null) {
@@ -44,7 +46,8 @@ public class JwtTokenBaseService implements TokenBaseService {
         JwtClaimsSet.Builder claimsBuilder = JwtClaimsSet.builder()
                 .subject(request.getSubject())
                 .issuedAt(Instant.now())
-                .claim("client_id", request.getClientId());
+                .claim("client_id", request.getClientId())
+                .claim("roles", request.getRoles());
 
         if(request.getIssuer() != null) {
             claimsBuilder.issuer(request.getIssuer());

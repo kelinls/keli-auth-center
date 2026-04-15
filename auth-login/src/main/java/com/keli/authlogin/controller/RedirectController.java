@@ -11,6 +11,12 @@ public class RedirectController {
     public String login(){
         return "login";
     }
+
+    @GetMapping("/register")
+    public String register() {
+        return "register";
+    }
+
     @GetMapping("/index")
     public String index(){
         return "index";

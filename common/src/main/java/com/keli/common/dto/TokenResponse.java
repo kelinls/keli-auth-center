@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -16,6 +18,8 @@ public class TokenResponse {
      */
     @JsonProperty("token_value")
     private String tokenValue;
+
+    private Map<String,Object> headers;
 
     /**
      * 访问令牌有效期（秒）

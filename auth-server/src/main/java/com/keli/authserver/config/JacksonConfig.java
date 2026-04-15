@@ -1,6 +1,8 @@
 package com.keli.authserver.config;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import com.keli.authserver.dto.SsoSessionAuthenticationToken;
 import com.keli.authserver.dto.mixin.SsoSessionAuthenticationTokenMixin;
 import com.keli.authserver.dto.mixin.SsoSessionPrincipalMixin;
@@ -14,8 +16,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.jackson2.SecurityJackson2Modules;
-import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2Authorization;
+import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationService;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.jackson2.OAuth2AuthorizationServerJackson2Module;
@@ -24,6 +26,8 @@ import org.springframework.security.oauth2.server.authorization.jackson2.OAuth2A
 public class JacksonConfig {
 
     public static final String OAUTH2_AUTHORIZATION_OBJECT_MAPPER = "oauth2AuthorizationObjectMapper";
+
+
 
     /**
      * Feign、Controller 等使用的默认 ObjectMapper。必须与 OAuth2 JDBC 专用 Mapper 分离，
@@ -44,11 +48,57 @@ public class JacksonConfig {
         ClassLoader classLoader = JdbcOAuth2AuthorizationService.class.getClassLoader();
         objectMapper.registerModules(SecurityJackson2Modules.getModules(classLoader));
         objectMapper.registerModule(new OAuth2AuthorizationServerJackson2Module());
+       // objectMapper.addMixIn(OAuth2Authorization.class, OAuth2AuthorizationMixin.class);
         objectMapper.addMixIn(SsoSessionAuthenticationToken.class, SsoSessionAuthenticationTokenMixin.class);
-        // principal 为 UserInfo 时必须注册 Mixin，否则 AllowlistTypeIdResolver 拒绝反序列化（仅作用于本 ObjectMapper，不影响 Feign）
+         //principal 为 UserInfo 时必须注册 Mixin，否则 AllowlistTypeIdResolver 拒绝反序列化（仅作用于本 ObjectMapper，不影响 Feign）
         objectMapper.addMixIn(SsoSessionPrincipal.class, SsoSessionPrincipalMixin.class);
+
+        objectMapper.activateDefaultTyping(
+                LaissezFaireSubTypeValidator.instance,
+                ObjectMapper.DefaultTyping.NON_FINAL,
+                JsonTypeInfo.As.PROPERTY
+        );
+//        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+//                .allowIfSubType("org.springframework.security.oauth2.core.")
+//                .allowIfSubType("org.springframework.security.oauth2.server.authorization.")
+//                .allowIfSubType("com.keli.authserver.dto.")
+//                .allowIfSubType("com.keli.common.dto.")
+//                .allowIfSubType("java.util.")   // 允许 java.util 包下的类（如 UnmodifiableMap, ArrayList 等）
+//                .allowIfSubType("java.lang.")
+//                .build();
+//        objectMapper.activateDefaultTyping(ptv);
         return objectMapper;
     }
+//    @Bean(name = OAUTH2_REDIS_OBJECT_MAPPER)
+//    public ObjectMapper oauth2RedisObjectMapper() {
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        ClassLoader classLoader = JdbcOAuth2AuthorizationService.class.getClassLoader();
+//        objectMapper.registerModules(SecurityJackson2Modules.getModules(classLoader));
+//        objectMapper.registerModule(new OAuth2AuthorizationServerJackson2Module());
+//        //自定义序列化和反序列化器
+//        SimpleModule module = new SimpleModule("AuthorizationGrantTypeModule");
+//       module.addSerializer(AuthorizationGrantType.class, new AuthorizationGrantTypeSerializer());
+//        module.addDeserializer(AuthorizationGrantType.class, new AuthorizationGrantTypeDeserializer());
+//        objectMapper.registerModule(module);
+//
+//       // objectMapper.addMixIn(AuthorizationGrantType.class, AuthorizationGrantTypeMixin.class);
+//        objectMapper.addMixIn(OAuth2Authorization.class, OAuth2AuthorizationMixin.class);
+//        objectMapper.addMixIn(SsoSessionAuthenticationToken.class, SsoSessionAuthenticationTokenMixin.class);
+//        // principal 为 UserInfo 时必须注册 Mixin，否则 AllowlistTypeIdResolver 拒绝反序列化（仅作用于本 ObjectMapper，不影响 Feign）
+//        objectMapper.addMixIn(SsoSessionPrincipal.class, SsoSessionPrincipalMixin.class);
+//
+////        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+////                .allowIfSubType("org.springframework.security.oauth2.core.")
+////                .allowIfSubType("org.springframework.security.oauth2.server.authorization.")
+////                .allowIfSubType("com.keli.authserver.dto.")
+////                .allowIfSubType("com.keli.common.dto.")
+////                .allowIfSubType("java.util.")   // 允许 java.util 包下的类（如 UnmodifiableMap, ArrayList 等）
+////                .allowIfSubType("java.lang.")
+////                .build();
+////        objectMapper.activateDefaultTyping(ptv);
+//        return objectMapper;
+//    }
+
 
     @Bean
     @Primary

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -28,6 +29,11 @@ public class TokenRequest {
      * 授权范围，空格分隔的字符串
      */
     private String scope;
+
+    /**
+     * 用户的权限
+     */
+    private List<String> roles;
 
     /**
      * 令牌类型：access_token 或 refresh_token

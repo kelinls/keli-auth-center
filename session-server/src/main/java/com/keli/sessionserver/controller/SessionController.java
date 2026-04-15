@@ -3,6 +3,7 @@ package com.keli.sessionserver.controller;
 import com.keli.common.dto.SsoSessionPrincipal;
 import com.keli.common.dto.SsoTokenCredentials;
 import com.keli.common.dto.UserInfo;
+import com.keli.common.utils.R;
 import com.keli.sessionserver.common.utils.SessionIdGenerator;
 import com.keli.sessionserver.dto.SessionData;
 import com.keli.sessionserver.service.SessionSecurityValidator;
@@ -54,6 +55,7 @@ public class SessionController {
         principal.setSessionId(credentials.getSessionId());
         principal.setUid(sessionData.getUid());
         principal.setUsername(sessionData.getUsername());
+        principal.setRoles(sessionData.getRoles());
         //滑动更新session持续时间
         sessionData.setExpiredAt(System.currentTimeMillis()+SessionExpireTtl*1000);
         redisTemplate.expire(sessionKey, Duration.ofSeconds(SessionExpireTtl));
@@ -87,6 +89,10 @@ public class SessionController {
         }
         logSessionGenerated(sessionData);
         return  sessionId;
+    }
+    @PostMapping("test")
+    public R test(){
+        return R.success(null);
     }
 
     private void logSessionGenerated(SessionData sessionData) {

@@ -12,8 +12,6 @@
         <result column="email" property="email"/>
         <result column="password" property="password"/>
         <result column="status" property="status"/>
-        <result column="locked" property="locked"/>
-        <result column="login_fail_count" property="loginFailCount"/>
         <result column="last_login_ip" property="lastLoginIp"/>
         <result column="last_login_time" property="lastLoginTime"/>
         <result column="created_at" property="createdAt"/>

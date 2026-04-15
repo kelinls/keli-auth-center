@@ -6,4 +6,6 @@ import org.springframework.security.oauth2.server.authorization.token.OAuth2Toke
 public interface TokenService {
     AbstractOAuth2Token generateAccessToken(OAuth2TokenContext context);
     AbstractOAuth2Token generateRefreshToken(OAuth2TokenContext context);
+    AbstractOAuth2Token generateIdToken(OAuth2TokenContext context);
+    AbstractOAuth2Token generateInternalAccessToken();
 }

@@ -1,4 +1,11 @@
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://localhost:9000
+  application:
+    name: auth-server
   data:
     redis:
       host: localhost         # Redis 服务器地址
@@ -17,15 +24,25 @@ spring:
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
+
 server:
   port: 9000
+  servlet:
+    session:
+      cookie:
+        name: AUTH_SERVER_SESSION
+  ssl:
+    enabled: true
+    key-store: classpath:cert/auth-server.p12      # 自己的服务端证书
+    key-store-client: classpath:cert/auth-server-client.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    client-auth: none                         # 关键：要求客户端提供证书
+    trust-store: classpath:cert/truststore.p12     # 信任库（验证客户端证书）
+    trust-store-password: changeit
+    trust-store-type: PKCS12
 
-# 授权服务器 issuer + token-service JWKS（元数据中的 jwks_uri 指向此地址，本地不再暴露 NimbusJwkSetEndpointFilter）
-keli:
-  auth-server:
-    issuer: http://localhost:9000
-  token-service:
-    jwks-uri: http://localhost:8082/oauth2/jwks
+
 mybatis-plus:
   # Mapper XML 文件位置
   mapper-locations: classpath*:/mapper/*.xml
@@ -68,3 +85,10 @@ springdoc:
     - com.example.controller
   paths-to-match:                 # 指定需要匹配的路径（可选）
     - /api/**
+
+
+keli:
+  auth-server:
+    issuer: https://localhost:9000
+  token-service:
+    jwks-uri: https://localhost:8082/oauth2/jwks
