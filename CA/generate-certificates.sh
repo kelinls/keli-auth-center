@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # ==================== 配置区 ====================
 CA_CN="kelinls CA"
@@ -9,23 +10,10 @@ OUTPUT_DIR="$(cd "$(dirname "$0")"; pwd)"
 
 # 服务列表（每个服务需要服务端证书和客户端证书）
 SERVICES=(
-  "login-server"
-  "auth-server"
-  "token-server"
-  "userinfo-server"
-  "session-server"
-  "client-server"
+ "audit-server"
 )
 
-# ==================== 函数定义 ====================
-generate_ca() {
-  echo ">>> 生成根 CA 证书..."
-  openssl genrsa -out "${OUTPUT_DIR}/ca.key" 2048
-  openssl req -x509 -new -nodes -key "${OUTPUT_DIR}/ca.key" -sha256 -days 3650 \
-    -out "${OUTPUT_DIR}/ca.crt" \
-    -subj "/C=CN/ST=Shanghai/L=Shanghai/O=kelinls/CN=${CA_CN}"
-  echo "根 CA 证书已生成: ${OUTPUT_DIR}/ca.crt"
-}
+
 
 generate_server_cert() {
   local service=$1
@@ -72,6 +60,7 @@ generate_client_cert() {
 
 generate_truststore() {
   echo ">>> 生成信任库（仅包含根 CA 证书）..."
+  rm -f "${OUTPUT_DIR}/truststore.p12"
   keytool -import -trustcacerts -alias ca \
     -file "${OUTPUT_DIR}/ca.crt" \
     -keystore "${OUTPUT_DIR}/truststore.p12" \
@@ -84,8 +73,8 @@ generate_truststore() {
 mkdir -p ${OUTPUT_DIR}
 cd ${OUTPUT_DIR} || exit
 
-# 1. 生成根 CA
-generate_ca
+
+
 
 # 2. 为每个服务生成服务端证书和客户端证书
 for svc in "${SERVICES[@]}"; do
@@ -93,8 +82,7 @@ for svc in "${SERVICES[@]}"; do
   generate_client_cert ${svc}
 done
 
-# 3. 生成统一的信任库（所有服务共用）
-generate_truststore
+
 
 # 4. 清理中间文件（可选，默认保留）
 # echo ">>> 清理中间文件（可选）..."

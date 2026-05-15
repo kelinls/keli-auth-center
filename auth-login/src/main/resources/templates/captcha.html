@@ -90,7 +90,7 @@
 
         try {
             // 真实请求你的后端
-            const response = await fetch('http://localhost:8080/api/auth/alicaptcha', {
+            const response = await fetch('http://localhost:9001/login/api/auth/alicaptcha', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -1,9 +1,15 @@
 package com.keli.tokenserver.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.keli.common.audit.AuditJson;
+import com.keli.common.audit.payload.TokenIssueAuditPayload;
 import com.keli.common.dto.JwtTokenGenerateRequest;
 import com.keli.common.dto.TokenResponse;
+import com.keli.common.mq.AuthCenterAuditMqBridge;
+import com.keli.common.mq.AuthCenterAuditMqConstants;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -15,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +33,12 @@ public class TokenController {
     private JwtEncoder jwtEncoder;
     @Autowired
     private JWKSet jwkSet;
+
+    private final AuthCenterAuditMqBridge auditMqBridge;
+
+    public TokenController(RocketMQTemplate rocketMQTemplate) {
+        this.auditMqBridge = new  AuthCenterAuditMqBridge(rocketMQTemplate,true);
+    }
 
     @PostMapping("/generate")
     public TokenResponse generate(@RequestBody JwtTokenGenerateRequest request) {
@@ -41,6 +54,7 @@ public class TokenController {
 
         Instant issuedAt = claims.getIssuedAt() != null ? claims.getIssuedAt() : Instant.now();
         Instant expiresAt = claims.getExpiresAt() != null ? claims.getExpiresAt() : issuedAt;
+        publishTokenGenerationAudit(request, claims);
         return TokenResponse.builder()
                 .tokenValue(jwt)
                 .headers(headers)
@@ -50,6 +64,30 @@ public class TokenController {
                 .expiresAt(expiresAt.getEpochSecond())
                 .authorizationId(request.getAuthorizationId())
                 .build();
+    }
+
+    private void publishTokenGenerationAudit(JwtTokenGenerateRequest request, JwtClaimsSet claims) {
+        if (auditMqBridge == null) {
+            return;
+        }
+        String audienceSerialized = null;
+        try {
+            if (claims.getAudience() != null && !claims.getAudience().isEmpty()) {
+                audienceSerialized = AuditJson.MAPPER.writeValueAsString(claims.getAudience());
+            }
+        } catch (JsonProcessingException ignored) {
+            audienceSerialized = null;
+        }
+        TokenIssueAuditPayload payload =
+                TokenIssueAuditPayload.builder()
+                        .subject(claims.getSubject())
+                        .tokenType(request.getTokenType())
+                        .authorizationId(request.getAuthorizationId())
+                        .issuer(claims.getIssuer().toString())
+                        .audienceJson(audienceSerialized)
+                        .occurredAt(new Date())
+                        .build();
+        auditMqBridge.publish(AuthCenterAuditMqConstants.TAG_TOKEN, payload);
     }
 
     private JwtClaimsSet buildClaims(Map<String, Object> claimMap) {

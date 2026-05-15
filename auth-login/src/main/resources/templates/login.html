@@ -72,7 +72,7 @@
 
     document.getElementById('registerLink').addEventListener('click', function(e) {
         e.preventDefault();
-        window.location.href = '/api/register?authorizationRequest=' + encodeURIComponent(authRequest);
+        window.location.href = '/login/api/register?authorizationRequest=' + encodeURIComponent(authRequest);
     });
 
     function showMsg(text, type) {
@@ -111,7 +111,7 @@
         }
 
         try {
-            const response = await fetch('/api/auth/alicaptcha', {
+            const response = await fetch('/login/api/auth/alicaptcha', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -147,7 +147,7 @@
         submitBtn.innerText = "登录中...";
 
         try {
-            const loginResponse = await fetch('/api/auth/login/password', {
+            const loginResponse = await fetch('/login/api/auth/login/password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -163,8 +163,6 @@
                 setTimeout(() => {
                     if (authRequest) {
                         window.location.href = authRequest;
-                    } else {
-                        window.location.href = "/oauth2/authorization/keli-test-client";
                     }
                 }, 1000);
             } else {

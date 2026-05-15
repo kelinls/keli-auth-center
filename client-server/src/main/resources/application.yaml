@@ -6,7 +6,8 @@ spring:
       client:
         provider:
           auth-server:
-            issuer-uri: https://localhost:9000
+            issuer-uri: https://localhost:9001/auth
+            #issuer-uri: https://frp-oil.com:51122/auth
         # registrationId=auth-server → 重定向 URI 为 /login/oauth2/code/auth-server（须与 AS 上该客户端的 redirect_uris 一致）
         # 说明：此处 authorization-grant-type 只描述「本应用如何发起登录」= 浏览器授权码跳转，只能填 authorization_code。
         # AS 上 grant_types 里的 refresh_token 表示「允许颁发/接受刷新令牌」；换 token 时若响应里带 refresh_token，
@@ -20,19 +21,21 @@ spring:
             client-secret: kelinls
             authorization-grant-type: authorization_code
             client-authentication-method: client_secret_basic
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: "{baseUrl}/client/login/oauth2/code/{registrationId}"
+            #redirect-uri: "https://frp-oil.com:51122/client/login/oauth2/code/{registrationId}"
             scope:
               - openid
               - profile
               - client_server
       resourceserver:
         jwt:
-          issuer-uri: https://localhost:9000
+          #issuer-uri: https://frp-oil.com:51122/auth
+          issuer-uri: https://localhost:9001/auth
   data:
     redis:
       host: localhost         # Redis 服务器地址
       port: 6379               # Redis 服务器端口
-      password:                # 密码（若无密码则留空）
+      #password:                # 密码（若无密码则留空）
       database: 0              # 使用的数据库索引（默认 0）
       timeout: 2000ms          # 连接超时时间（毫秒）
       lettuce:
@@ -46,6 +49,18 @@ spring:
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+audit:
+  mq:
+    producer:
+      enabled: true
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: client-server-audit-producer
+    send-message-timeout: 3000
+
 server:
   port: 8083
   servlet:
@@ -85,11 +100,12 @@ mybatis-plus:
   # 配置项
   configuration:
     # 日志输出（开发阶段使用）
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    #log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     # 开启驼峰命名转换（默认 true）
     map-underscore-to-camel-case: true
     # 是否开启缓存
-    cache-enabled: false
+    cache-enabled: true
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 springdoc:
   api-docs:
     path: /api-docs               # 自定义 JSON 文档路径，默认 /api-docs
@@ -109,4 +125,5 @@ springdoc:
 
 keli:
   auth-server:
-    issuer: https://localhost:9000
+    issuer: https://localhost:9001/auth
+    #issuer: https://frp-oil.com:51122/auth

@@ -23,6 +23,8 @@
         <module>userInfo-server</module>
         <module>client-server</module>
         <module>common</module>
+        <module>gateway</module>
+        <module>audit-server</module>
    </modules>
     <properties>
         <!-- 基础环境配置 -->

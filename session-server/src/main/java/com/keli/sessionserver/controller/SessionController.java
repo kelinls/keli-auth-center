@@ -1,13 +1,17 @@
 package com.keli.sessionserver.controller;
 
+import com.keli.common.audit.payload.SessionLifecycleAuditPayload;
 import com.keli.common.dto.SsoSessionPrincipal;
 import com.keli.common.dto.SsoTokenCredentials;
 import com.keli.common.dto.UserInfo;
+import com.keli.common.mq.AuthCenterAuditMqBridge;
+import com.keli.common.mq.AuthCenterAuditMqConstants;
 import com.keli.common.utils.R;
 import com.keli.sessionserver.common.utils.SessionIdGenerator;
 import com.keli.sessionserver.dto.SessionData;
 import com.keli.sessionserver.service.SessionSecurityValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -17,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
+import java.util.Date;
 
 @Slf4j
 @RestController
@@ -29,8 +34,18 @@ public class SessionController {
     @Autowired
     private SessionSecurityValidator sessionSecurityValidator;
 
+
+
+
     @Value("${security.session.expireTtl}")
     private Integer SessionExpireTtl;
+
+    private final AuthCenterAuditMqBridge auditMqBridge;
+
+    public SessionController(RocketMQTemplate rocketMQTemplate) {
+        this.auditMqBridge = new  AuthCenterAuditMqBridge(rocketMQTemplate,true);
+    }
+
     @PostMapping("/validate")
     public SsoSessionPrincipal validateSession(@RequestBody SsoTokenCredentials credentials) {
 //        if(credentials != null){
@@ -88,6 +103,20 @@ public class SessionController {
             throw new RuntimeException(e);
         }
         logSessionGenerated(sessionData);
+        if (auditMqBridge != null) {
+            auditMqBridge.publish(
+                    AuthCenterAuditMqConstants.TAG_SESSION,
+                    SessionLifecycleAuditPayload.builder()
+                            .operation("CREATE")
+                            .sessionId(sessionId)
+                            .uid(userInfo.getUid())
+                            .username(userInfo.getUsername())
+                            .clientIp(userInfo.getClientIp())
+                            .userAgent(userInfo.getUserAgent())
+                            .success(1)
+                            .occurredAt(new Date())
+                            .build());
+        }
         return  sessionId;
     }
     @PostMapping("test")

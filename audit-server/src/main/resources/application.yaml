@@ -1,4 +1,13 @@
 spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://localhost:9001/auth
+          #issuer-uri: https://frp-oil.com:51122/auth
+
+  application:
+    name: audit-server
   data:
     redis:
       host: localhost         # Redis 服务器地址
@@ -20,32 +29,36 @@ spring:
 
 audit:
   mq:
-    producer:
+    consumer:
       enabled: true
-
-rocketmq:
-  name-server: 127.0.0.1:9876
-  producer:
-    group: session-server-audit-producer
-    send-message-timeout: 3000
 
 server:
-    port: 8081
-    ssl:
-      enabled: true
-      key-store: classpath:cert/session-server.p12      # 自己的服务端证书
-      key-store-client: classpath:cert/session-server-client.p12
-      key-store-password: changeit
-      key-store-type: PKCS12
-      client-auth: need                         # 关键：要求客户端提供证书
-      trust-store: classpath:cert/truststore.p12     # 信任库（验证客户端证书）
-      trust-store-password: changeit
-      trust-store-type: PKCS12
+  port: 8085
+  ssl:
+    enabled: true
+    key-store: classpath:cert/audit-server.p12      # 自己的服务端证书
+    key-store-client: classpath:cert/audit-server-client.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    client-auth: none                         # 关键：要求客户端提供证书
+    trust-store: classpath:cert/truststore.p12     # 信任库（验证客户端证书）
+    trust-store-password: changeit
+    trust-store-type: PKCS12
+
+rocketmq:
+  name-server: 127.0.0.1:9876          # NameServer 地址
+  producer:
+    group: audit-server          # 生产者组名
+    send-message-timeout: 3000         # 发送超时（毫秒）
+    retry-times-when-send-failed: 2    # 同步发送失败重试次数
+    max-message-size: 4194304          # 最大消息字节数（4M）
+  consumer:
+    group: audit-server           # 消费者组名（也可在监听器注解里单独指定）
 mybatis-plus:
   # Mapper XML 文件位置
   mapper-locations: classpath*:/mapper/*.xml
   # 实体类包路径，用于别名
- # type-aliases-package: com.example.domain
+  #type-aliases-package: com.example.domain
   # 全局配置
   global-config:
     db-config:
@@ -69,7 +82,7 @@ mybatis-plus:
     cache-enabled: false
 springdoc:
   api-docs:
-    path: /api-docs               # 自定义 JSON 文档路径，默认 /v3/api-docs
+    path: /api-docs               # 自定义 JSON 文档路径，默认 /api-docs
     enabled: true                 # 是否启用 API 文档端点，默认 true
   swagger-ui:
     path: /swagger-ui.html        # 自定义 UI 访问路径，默认 /swagger-ui.html
@@ -79,10 +92,7 @@ springdoc:
     tryItOutEnabled: true         # 是否显示“Try it out”按钮
     filter: true                  # 是否显示过滤框
     displayRequestDuration: true  # 是否显示请求耗时
-  packages-to-scan:               # 指定扫描的包路径（可选，默认扫描所有 @RestController）
-    - com.example.controller
+  packages-to-scan:
+    - com.keli.auditserver
   paths-to-match:                 # 指定需要匹配的路径（可选）
     - /api/**
-security:
-  session:
-    expireTtl: 3600

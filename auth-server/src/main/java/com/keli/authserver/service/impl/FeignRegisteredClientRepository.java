@@ -1,9 +1,14 @@
 package com.keli.authserver.service.impl;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.keli.authserver.feign.ClientManagementFeignClient;
 import com.keli.common.dto.RegisteredClientDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
@@ -20,22 +25,132 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+@Slf4j
 @Component
 @Primary
 public class FeignRegisteredClientRepository implements RegisteredClientRepository {
     @Autowired
     private ClientManagementFeignClient feignClient;
+    private final String ClientCachePrefix = "cache:client:";
+    private final Duration redisCacheTtl = Duration.ofMinutes(30);
+    private final boolean useCaffeine = true;
+    @Autowired
+    @Qualifier("registeredClientCaffeineCache")
+    private Cache<String, RegisteredClientDTO> caffeineCache;
+    @Autowired
+    @Qualifier("registeredClientRedisTemplate")
+    private RedisTemplate<String, RegisteredClientDTO> redisTemplate;
+
     @Override
-    public RegisteredClient findById(String id) {
-        // 注意：id 通常是内部 ID，也可能是 clientId，看你的远程 API 设计
-        RegisteredClientDTO dto = feignClient.getClientById(id);
-        return convertToRegisteredClient(dto);
+    public void save(RegisteredClient registeredClient) {
+        if (registeredClient == null) {
+            return;
+        }
+        cacheClient(ClientCachePrefix + registeredClient.getId(), registeredClient);
+        cacheClient(ClientCachePrefix + registeredClient.getClientId(), registeredClient);
     }
 
     @Override
+    public RegisteredClient findById(String id) {
+        // 注意：id 通常是内部 ID，也可能是 clientId，看你的远程 API 设计
+        String key = ClientCachePrefix + id;
+//        long time1 = System.currentTimeMillis();
+        RegisteredClient registeredClient = getClientByCache(key);
+
+        if (registeredClient != null) {
+//            long time2 = System.currentTimeMillis();
+//            System.out.println("client走缓存"+(time2 - time1));
+            return registeredClient;
+        }
+        RegisteredClientDTO dto = feignClient.getClientById(id);
+        if (dto == null) {
+            return null;
+        }
+        registeredClient = convertToRegisteredClient(dto);
+        cacheClientDto(ClientCachePrefix + dto.getId(), dto);
+        cacheClientDto(ClientCachePrefix + dto.getClientId(), dto);
+        return registeredClient;
+    }
+
+
+
+    @Override
     public RegisteredClient findByClientId(String clientId) {
+        String key = ClientCachePrefix + clientId;
+//        long time1 = System.currentTimeMillis();
+        RegisteredClient registeredClient = getClientByCache(key);
+
+        if (registeredClient != null) {
+//            long time2 = System.currentTimeMillis();
+//            System.out.println("client走缓存"+(time2 - time1));
+            return registeredClient;
+        }
         RegisteredClientDTO dto = feignClient.getClientByClientId(clientId);
-        return convertToRegisteredClient(dto);
+        if (dto == null) {
+            return null;
+        }
+        registeredClient = convertToRegisteredClient(dto);
+        cacheClientDto(ClientCachePrefix + dto.getId(), dto);
+        cacheClientDto(ClientCachePrefix + dto.getClientId(), dto);
+        return registeredClient;
+    }
+
+    private void cacheClient(String key, RegisteredClient registeredClient) {
+        if (key == null || registeredClient == null) {
+            return;
+        }
+        cacheClientDto(key, convertToDto(registeredClient));
+    }
+
+    private void cacheClientDto(String key, RegisteredClientDTO cachedDto) {
+        if (key == null || cachedDto == null) {
+            return;
+        }
+        if (useCaffeine) {
+            caffeineCache.put(key, cachedDto);
+        }
+        redisTemplate.opsForValue().set(key, cachedDto, redisCacheTtl);
+    }
+
+    private RegisteredClient getClientByCache(String key) {
+        if (key == null) {
+            return null;
+        }
+        RegisteredClientDTO cachedDto = null;
+        if (useCaffeine) {
+            cachedDto = caffeineCache.getIfPresent(key);
+        }
+        if (cachedDto != null) {
+            return convertToRegisteredClient(cachedDto);
+        }
+        try {
+            cachedDto = redisTemplate.opsForValue().get(key);
+        } catch (SerializationException ex) {
+            redisTemplate.delete(key);
+            cachedDto = null;
+        }
+        if (cachedDto != null && useCaffeine) {
+            caffeineCache.put(key, cachedDto);
+        }
+        if (cachedDto == null) {
+            return null;
+        }
+        return convertToRegisteredClient(cachedDto);
+    }
+
+    private RegisteredClientDTO convertToDto(RegisteredClient registeredClient) {
+        return new RegisteredClientDTO(
+                registeredClient.getId(),
+                registeredClient.getClientId(),
+                registeredClient.getClientSecret(),
+                registeredClient.getClientAuthenticationMethods().stream().map(ClientAuthenticationMethod::getValue).collect(Collectors.toSet()),
+                registeredClient.getAuthorizationGrantTypes().stream().map(AuthorizationGrantType::getValue).collect(Collectors.toSet()),
+                registeredClient.getRedirectUris(),
+                registeredClient.getPostLogoutRedirectUris(),
+                registeredClient.getScopes(),
+                registeredClient.getClientSettings().getSettings(),
+                registeredClient.getTokenSettings().getSettings()
+        );
     }
     private RegisteredClient convertToRegisteredClient(RegisteredClientDTO dto) {
         Set<String> clientAuthenticationMethods = dto.getClientAuthenticationMethods() != null ? dto.getClientAuthenticationMethods() : Set.of();
@@ -180,8 +295,5 @@ public class FeignRegisteredClientRepository implements RegisteredClientReposito
         }
         throw new IllegalArgumentException("Unsupported boolean value: " + value.getClass().getName());
     }
-    @Override
-    public void save(RegisteredClient registeredClient) {
 
-    }
 }

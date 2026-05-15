@@ -1,6 +1,8 @@
 package com.keli.authlogin.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -27,6 +29,7 @@ public class LoginAuditLog implements Serializable {
     /**
     * 记录唯一ID
     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @NotNull(message="[记录唯一ID]不能为空")
     @Schema(description = "记录唯一ID")
     private Long id;

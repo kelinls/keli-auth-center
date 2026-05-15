@@ -35,7 +35,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void register(RegisterRequest registerRequest) {
+    public String register(RegisterRequest registerRequest) {
         validateRegisterRequest(registerRequest);
         checkDuplicate(registerRequest);
 
@@ -53,7 +53,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         createRequest.setGender(parseGender(registerRequest.getGender()));
         createRequest.setBirthday(parseBirthday(registerRequest.getBirthday()) == null ? null : registerRequest.getBirthday().trim());
         userInfoClient.createUser(createRequest);
-
+        return uid;
     }
 
     private void validateRegisterRequest(RegisterRequest registerRequest) {

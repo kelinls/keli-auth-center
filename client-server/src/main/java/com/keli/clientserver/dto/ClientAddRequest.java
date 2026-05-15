@@ -36,6 +36,11 @@ public class ClientAddRequest {
     private List<String> authMethods;
     private List<String> logoutUris;
 
+    /**
+     * 更新时必填：与数据库当前行一致的乐观锁版本（见查询接口返回的 version）。
+     */
+    private Integer version;
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor

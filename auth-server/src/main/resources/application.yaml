@@ -3,7 +3,9 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://localhost:9000
+          issuer-uri: https://localhost:9001/auth
+          #issuer-uri: https://frp-oil.com:51122/auth
+
   application:
     name: auth-server
   data:
@@ -87,8 +89,18 @@ springdoc:
     - /api/**
 
 
+rocketmq:
+  name-server: 124.222.107.55:9876
+  producer:
+    group: auth-server
+  consumer:
+    group: auth-server
 keli:
   auth-server:
-    issuer: https://localhost:9000
+    login-uri: https://localhost:9001/login/api/login
+    #login-uri: https://frp-oil.com:51122/login/api/login
+    issuer: https://localhost:9001/auth
+    #issuer: https://frp-oil.com:51122/auth
   token-service:
-    jwks-uri: https://localhost:8082/oauth2/jwks
+    jwks-uri: https://localhost:9001/token/oauth2/jwks
+    #jwks-uri: https://frp-oil.com:51122/token/oauth2/jwks

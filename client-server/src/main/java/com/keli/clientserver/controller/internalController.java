@@ -25,5 +25,4 @@ public class internalController {
     public RegisteredClientDTO getClientById(@RequestParam String id) {
         return oauthClientService.getRegisteredClient(id);
     }
-
 }

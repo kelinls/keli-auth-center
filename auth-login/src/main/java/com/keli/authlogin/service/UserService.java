@@ -11,5 +11,8 @@ import com.keli.authlogin.entity.User;
  */
 public interface UserService extends IService<User> {
 
-    void register(RegisterRequest registerRequest);
+    /**
+     * @return 新用户 uid
+     */
+    String register(RegisterRequest registerRequest);
 }

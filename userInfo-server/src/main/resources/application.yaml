@@ -5,7 +5,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://localhost:9000
+          issuer-uri: https://localhost:9001/auth
+          #issuer-uri: https://frp-oil.com:51122/auth
   data:
     redis:
       host: localhost         # Redis 服务器地址
@@ -24,6 +25,18 @@ spring:
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+audit:
+  mq:
+    producer:
+      enabled: true
+
+rocketmq:
+  name-server: 127.0.0.1:9876
+  producer:
+    group: userinfo-server-audit-producer
+    send-message-timeout: 3000
+
 server:
   port: 8084
   ssl:

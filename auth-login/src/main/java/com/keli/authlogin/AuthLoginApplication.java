@@ -12,6 +12,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @EnableFeignClients
 public class AuthLoginApplication {
     public static void main(String[] args) {
+        ThreadLocal threadLocal = new ThreadLocal();
         SpringApplication.run(AuthLoginApplication.class, args);
     }
 }

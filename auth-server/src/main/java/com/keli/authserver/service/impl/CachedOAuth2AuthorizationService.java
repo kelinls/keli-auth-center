@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationService {
     private final String idCachePrefix = "auth:id:";
     private final String tokenCachePrefix = "auth:token:";
-    private final boolean useCaffeine = false;
+    private final boolean useCaffeine = true;
     private final RegisteredClientRepository registeredClientRepository;
 
 
@@ -184,18 +184,25 @@ public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationServ
 
     @Override
     public OAuth2Authorization findByToken(String token, OAuth2TokenType tokenType) {
+
         String key = tokenCachePrefix + token;
         // 1. 从 Caffeine 获取
         OAuth2Authorization auth = null;
         if(useCaffeine){
+//            long time1 = System.currentTimeMillis();
             auth = caffeineCache.getIfPresent(key);
+//            long time2 = System.currentTimeMillis();
+//            System.out.println("auth caffeine"+(time2 - time1));
         }
         if (auth != null) {
             return auth;
         }
         // 2. 从 Redis 获取
         try {
+//            long time1 = System.currentTimeMillis();
             auth = redisTemplate.opsForValue().get(key);
+//            long time2 = System.currentTimeMillis();
+//            System.out.println("auth redis"+(time2 - time1));
         } catch (SerializationException ex) {
             log.error(ex.getMessage(), ex);
             auth = null;
@@ -203,8 +210,8 @@ public class CachedOAuth2AuthorizationService implements OAuth2AuthorizationServ
         if (auth != null) {
             if(useCaffeine){
                 caffeineCache.put(key, auth);
-                return auth;
             }
+            return auth;
         }
         // 3. 从数据库获取
         auth = delegate.findByToken(token, tokenType);

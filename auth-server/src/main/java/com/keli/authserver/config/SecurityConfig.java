@@ -5,6 +5,7 @@ import com.keli.authserver.feign.SessionClient;
 import com.keli.authserver.filter.SsoSessionAuthenticationFilter;
 import com.keli.authserver.oidc.ClientScopedOidcLogoutSuccessHandler;
 import com.keli.authserver.oidc.CustomOidcUserInfoMapper;
+import com.keli.authserver.service.impl.CachingClientAuthenticationProvider;
 import com.keli.authserver.service.impl.CustomRefreshTokenAuthenticationProvider;
 import com.keli.authserver.service.impl.ExternalLoginAuthenticationEntryPoint;
 import jakarta.servlet.http.HttpServletRequest;
@@ -49,8 +50,8 @@ public class SecurityConfig {
      * token-service 上公开的 JWKS 绝对 URL，写入
      * {@link org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationServerMetadata} 的 {@code jwks_uri}。
      */
-    @Value("${keli.token-service.jwks-uri:http://localhost:8082/oauth2/jwks}")
-    private String tokenServiceJwksUri;
+    @Value("${keli.auth-server.login-uri}")
+    private String loginUri;
     @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
@@ -61,6 +62,8 @@ public class SecurityConfig {
     private CustomRefreshTokenAuthenticationProvider customRefreshTokenAuthenticationProvider;
     @Autowired
     private ClientScopedOidcLogoutSuccessHandler clientScopedOidcLogoutSuccessHandler;
+    @Autowired
+    private CachingClientAuthenticationProvider cachingClientAuthenticationProvider;
 @Bean
 public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerResolver(HttpSecurity http) {
     // 注意：这里传入的 http 是尚未构建的实例，但 lambda 会在请求时执行，此时 http 已构建好
@@ -85,7 +88,12 @@ public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerRe
                                     userinfoConfigurer.userInfoMapper(CustomOidcUserInfoMapper::getOidcUserInfo))
                             .logoutEndpoint(logout -> logout
                                     .logoutResponseHandler(clientScopedOidcLogoutSuccessHandler))
-                    );
+                    )
+                            .clientAuthentication(auth->{
+                                auth.authenticationProviders(providers->{
+                                    providers.addFirst(cachingClientAuthenticationProvider);
+                                });
+                            });
                 })
                 .authorizeHttpRequests((authorize) ->
                         authorize
@@ -106,7 +114,7 @@ public AuthenticationManagerResolver<HttpServletRequest> authenticationManagerRe
                 // authorization endpoint
                 .exceptionHandling((exceptions) -> exceptions
                         .defaultAuthenticationEntryPointFor(
-                                new ExternalLoginAuthenticationEntryPoint("https://localhost:8080/api/login"),
+                                new ExternalLoginAuthenticationEntryPoint(loginUri),
                                 new MediaTypeRequestMatcher(MediaType.TEXT_HTML)
                         )
                 );
