@@ -90,8 +90,8 @@ springdoc:
   paths-to-match:                 # 指定需要匹配的路径（可选）
     - /api/**
 alibabacloud:
-  accessKeyId: LTAI5tRmqnN8HEL6yKfY5Ybm
-  accessKeySecret: HxAisz4U8hyfUQ46PuRd3T4S9jQmAa
+  accessKeyId:
+  accessKeySecret:
   endpoint: captcha.cn-shanghai.aliyuncs.com
 #logging:
 #  level:
